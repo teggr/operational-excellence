@@ -42,9 +42,18 @@ public class GitRepositoryService {
     @Transactional
     public GitRepository save(GitRepository gitRepository) {
         if (gitRepository.getId() == null) {
-            // New repository - set local path
+            // New repository - set local path with proper sanitization
             String sanitizedName = gitRepository.getName().replaceAll("[^a-zA-Z0-9-_]", "_");
-            gitRepository.setLocalPath(localBasePath + "/" + sanitizedName);
+            // Prevent path traversal by ensuring the path stays within the base directory
+            Path basePath = Paths.get(localBasePath).toAbsolutePath().normalize();
+            Path targetPath = basePath.resolve(sanitizedName).normalize();
+            
+            // Verify the resolved path is still within the base directory
+            if (!targetPath.startsWith(basePath)) {
+                throw new IllegalArgumentException("Invalid repository name: path traversal detected");
+            }
+            
+            gitRepository.setLocalPath(targetPath.toString());
         }
         return repository.save(gitRepository);
     }
@@ -58,6 +67,19 @@ public class GitRepositoryService {
     public void cloneRepository(Long id) throws GitAPIException, IOException {
         GitRepository gitRepo = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Repository not found"));
+
+        // Validate URL format
+        String url = gitRepo.getUrl();
+        if (url == null || url.trim().isEmpty()) {
+            throw new IllegalArgumentException("Repository URL is required");
+        }
+        
+        // Basic URL validation - ensure it's a valid Git URL
+        if (!url.startsWith("http://") && !url.startsWith("https://") && 
+            !url.startsWith("git://") && !url.startsWith("ssh://") &&
+            !url.matches("^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:.*")) {
+            throw new IllegalArgumentException("Invalid Git repository URL format");
+        }
 
         File localPathFile = new File(gitRepo.getLocalPath());
         
@@ -130,10 +152,11 @@ public class GitRepositoryService {
 
     private void deleteDirectory(Path path) throws IOException {
         if (Files.exists(path)) {
-            Files.walk(path)
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+            try (var stream = Files.walk(path)) {
+                stream.sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            }
         }
     }
 

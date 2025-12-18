@@ -3,6 +3,10 @@ package com.teggr.operationalexcellence.controller;
 import com.teggr.operationalexcellence.service.GitHubService;
 import com.teggr.operationalexcellence.view.GitHubViews;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,41 +25,20 @@ public class GitHubController {
 
     @GetMapping(value = "/repositories", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
-    public String listRepositories() {
-        String tokenStatus = gitHubService.getTokenStatus();
-        List<Map<String, Object>> repositories = gitHubService.getUserRepositories();
-        return GitHubViews.repositoriesView(repositories, tokenStatus);
+    public String listRepositories(
+            @RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient authorizedClient,
+            @AuthenticationPrincipal OAuth2User oauth2User) {
+        
+        String accessToken = authorizedClient.getAccessToken().getTokenValue();
+        String username = oauth2User.getAttribute("login");
+        
+        List<Map<String, Object>> repositories = gitHubService.getUserRepositories(accessToken);
+        return GitHubViews.repositoriesView(repositories, username);
     }
 
     @GetMapping(value = "/login")
     public String initiateLogin() {
-        // Redirect to a page where user can manually enter their token
-        return "redirect:/github/token-form";
-    }
-
-    @GetMapping(value = "/token-form", produces = MediaType.TEXT_HTML_VALUE)
-    @ResponseBody
-    public String showTokenForm(@RequestParam(required = false) String error) {
-        return GitHubViews.tokenFormView(error);
-    }
-
-    @PostMapping(value = "/token")
-    public String saveToken(@RequestParam String token) {
-        // Validate token by getting user info
-        Map<String, Object> user = gitHubService.getAuthenticatedUser(token);
-        
-        if (!user.isEmpty() && user.containsKey("login")) {
-            String username = (String) user.get("login");
-            gitHubService.saveToken(username, token);
-            return "redirect:/github/repositories";
-        } else {
-            return "redirect:/github/token-form?error=invalid";
-        }
-    }
-
-    @PostMapping(value = "/logout")
-    public String logout() {
-        gitHubService.deleteAllTokens();
-        return "redirect:/github/repositories";
+        // Spring Security will handle the OAuth2 login flow
+        return "redirect:/oauth2/authorization/github";
     }
 }

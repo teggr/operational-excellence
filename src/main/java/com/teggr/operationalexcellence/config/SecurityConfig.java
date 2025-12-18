@@ -14,12 +14,18 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/", "/new", "/*/edit", "/h2-console/**").permitAll()
+                .requestMatchers("/github/repositories").authenticated()
                 .anyRequest().permitAll()
             )
-            // CSRF is disabled as this is a single-user local application
-            // without session-based authentication. All requests are permitted.
-            // For production use, consider implementing proper CSRF protection.
-            .csrf(csrf -> csrf.disable());
+            .oauth2Login(oauth2 -> oauth2
+                .loginPage("/github/login")
+                .defaultSuccessUrl("/github/repositories", true)
+            )
+            .logout(logout -> logout
+                .logoutUrl("/github/logout")
+                .logoutSuccessUrl("/")
+            );
         
         return http.build();
     }

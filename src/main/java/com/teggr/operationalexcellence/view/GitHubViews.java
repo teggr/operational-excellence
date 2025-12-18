@@ -9,46 +9,32 @@ import static j2html.TagCreator.*;
 
 public class GitHubViews {
 
-    public static String repositoriesView(List<Map<String, Object>> repositories, String tokenStatus) {
+    public static String repositoriesView(List<Map<String, Object>> repositories, String username) {
         DivTag bodyContent;
         
-        if ("NO_TOKEN".equals(tokenStatus)) {
+        if (repositories.isEmpty()) {
             bodyContent = div(
                     h1("GitHub Repositories"),
                     div(
-                            p("You are not logged in to GitHub. Please authenticate to view your repositories."),
-                            a("Login to GitHub").withClass("btn btn-primary").withHref("/github/login")
-                    ).withClass("message-box")
-            ).withClass("container");
-        } else if ("EXPIRED".equals(tokenStatus)) {
-            bodyContent = div(
-                    h1("GitHub Repositories"),
-                    div(
-                            p("Your GitHub access token has expired. Please login again."),
-                            a("Re-authenticate with GitHub").withClass("btn btn-primary").withHref("/github/login")
-                    ).withClass("message-box")
-            ).withClass("container");
-        } else if (repositories.isEmpty()) {
-            bodyContent = div(
-                    h1("GitHub Repositories"),
-                    div(
+                            p("Logged in as: " + username),
+                            a("Back to Local Repositories").withClass("btn btn-secondary").withHref("/"),
                             form(
                                     button("Logout").withClass("btn btn-danger").withType("submit")
-                            ).withMethod("post").withAction("/github/logout")
+                            ).withMethod("post").withAction("/logout")
                     ).withClass("header-actions"),
                     div(
-                            p("No repositories found or unable to fetch repositories. Your token may be invalid."),
-                            a("Re-authenticate with GitHub").withClass("btn btn-primary").withHref("/github/login")
+                            p("No repositories found.")
                     ).withClass("message-box")
             ).withClass("container");
         } else {
             bodyContent = div(
                     h1("GitHub Repositories"),
                     div(
+                            p("Logged in as: " + username),
                             a("Back to Local Repositories").withClass("btn btn-secondary").withHref("/"),
                             form(
                                     button("Logout").withClass("btn btn-danger").withType("submit")
-                            ).withMethod("post").withAction("/github/logout")
+                            ).withMethod("post").withAction("/logout")
                     ).withClass("header-actions"),
                     table(
                             thead(
@@ -196,140 +182,6 @@ public class GitHubViews {
                         )
                 ),
                 body(bodyContent)
-        ).render();
-    }
-
-    public static String tokenFormView(String error) {
-        return html(
-                head(
-                        title("GitHub Authentication - Operational Excellence"),
-                        style("""
-                                body {
-                                    font-family: Arial, sans-serif;
-                                    margin: 20px;
-                                    background-color: #f5f5f5;
-                                }
-                                .container {
-                                    max-width: 800px;
-                                    margin: 0 auto;
-                                    background-color: white;
-                                    padding: 20px;
-                                    border-radius: 8px;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                                }
-                                h1 {
-                                    color: #333;
-                                    border-bottom: 2px solid #007bff;
-                                    padding-bottom: 10px;
-                                }
-                                .form-group {
-                                    margin-bottom: 20px;
-                                }
-                                label {
-                                    display: block;
-                                    margin-bottom: 5px;
-                                    font-weight: bold;
-                                    color: #333;
-                                }
-                                input[type="password"] {
-                                    width: 100%;
-                                    padding: 8px;
-                                    border: 1px solid #ddd;
-                                    border-radius: 4px;
-                                    box-sizing: border-box;
-                                    font-size: 14px;
-                                }
-                                input[type="password"]:focus {
-                                    outline: none;
-                                    border-color: #007bff;
-                                }
-                                .error-box {
-                                    padding: 15px;
-                                    margin: 20px 0;
-                                    background-color: #f8d7da;
-                                    border: 1px solid #f5c6cb;
-                                    border-radius: 4px;
-                                    color: #721c24;
-                                }
-                                .btn {
-                                    padding: 10px 20px;
-                                    margin-right: 10px;
-                                    border: none;
-                                    border-radius: 4px;
-                                    cursor: pointer;
-                                    text-decoration: none;
-                                    display: inline-block;
-                                    font-size: 14px;
-                                }
-                                .btn-primary {
-                                    background-color: #007bff;
-                                    color: white;
-                                }
-                                .btn-primary:hover {
-                                    background-color: #0056b3;
-                                }
-                                .btn-secondary {
-                                    background-color: #6c757d;
-                                    color: white;
-                                }
-                                .btn-secondary:hover {
-                                    background-color: #5a6268;
-                                }
-                                .info-box {
-                                    padding: 15px;
-                                    margin: 20px 0;
-                                    background-color: #d1ecf1;
-                                    border: 1px solid #bee5eb;
-                                    border-radius: 4px;
-                                    color: #0c5460;
-                                }
-                                .info-box ul {
-                                    margin: 10px 0;
-                                    padding-left: 20px;
-                                }
-                                .info-box a {
-                                    color: #0c5460;
-                                    font-weight: bold;
-                                }
-                                """
-                        )
-                ),
-                body(
-                        div(
-                                h1("Authenticate with GitHub"),
-                                iff("invalid".equals(error),
-                                        div(
-                                                p("Invalid token. Please check your token and try again. Make sure the token has the correct permissions.")
-                                        ).withClass("error-box")
-                                ),
-                                div(
-                                        p(strong("How to generate a GitHub Personal Access Token:")),
-                                        rawHtml("<ol>" +
-                                                "<li>Go to <a href='https://github.com/settings/tokens' target='_blank'>GitHub Settings → Developer Settings → Personal Access Tokens → Tokens (classic)</a></li>" +
-                                                "<li>Click <strong>Generate new token (classic)</strong></li>" +
-                                                "<li>Give your token a descriptive name</li>" +
-                                                "<li>Select scopes: <strong>repo</strong> (for full repository access)</li>" +
-                                                "<li>Click <strong>Generate token</strong></li>" +
-                                                "<li>Copy the token (you won't be able to see it again)</li>" +
-                                                "<li>Paste it in the form below</li>" +
-                                                "</ol>")
-                                ).withClass("info-box"),
-                                form(
-                                        div(
-                                                label("GitHub Personal Access Token:").attr("for", "token"),
-                                                input().withType("password")
-                                                        .withName("token")
-                                                        .withId("token")
-                                                        .withPlaceholder("ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-                                                        .isRequired()
-                                        ).withClass("form-group"),
-                                        div(
-                                                button("Save Token").withClass("btn btn-primary").withType("submit"),
-                                                a("Cancel").withClass("btn btn-secondary").withHref("/github/repositories")
-                                        )
-                                ).withMethod("post").withAction("/github/token")
-                        ).withClass("container")
-                )
         ).render();
     }
 }

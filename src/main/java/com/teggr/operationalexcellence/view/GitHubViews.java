@@ -1,92 +1,85 @@
 package com.teggr.operationalexcellence.view;
 
-import com.teggr.operationalexcellence.model.GitRepository;
-import com.teggr.operationalexcellence.service.GitRepositoryService;
 import j2html.tags.specialized.DivTag;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 import static j2html.TagCreator.*;
 
-public class RepositoryViews {
+public class GitHubViews {
 
-    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-    public static String listView(List<GitRepository> repositories, GitRepositoryService service) {
+    public static String repositoriesView(List<Map<String, Object>> repositories, String tokenStatus) {
         DivTag bodyContent;
         
-        if (repositories.isEmpty()) {
+        if ("NO_TOKEN".equals(tokenStatus)) {
             bodyContent = div(
-                    h1("Git Repository Management"),
+                    h1("GitHub Repositories"),
                     div(
-                            a("Add New Repository").withClass("btn btn-primary").withHref("/new"),
-                            a("View GitHub Repositories").withClass("btn btn-secondary").withHref("/github/repositories")
+                            p("You are not logged in to GitHub. Please authenticate to view your repositories."),
+                            a("Login to GitHub").withClass("btn btn-primary").withHref("/github/login")
+                    ).withClass("message-box")
+            ).withClass("container");
+        } else if ("EXPIRED".equals(tokenStatus)) {
+            bodyContent = div(
+                    h1("GitHub Repositories"),
+                    div(
+                            p("Your GitHub access token has expired. Please login again."),
+                            a("Re-authenticate with GitHub").withClass("btn btn-primary").withHref("/github/login")
+                    ).withClass("message-box")
+            ).withClass("container");
+        } else if (repositories.isEmpty()) {
+            bodyContent = div(
+                    h1("GitHub Repositories"),
+                    div(
+                            form(
+                                    button("Logout").withClass("btn btn-danger").withType("submit")
+                            ).withMethod("post").withAction("/github/logout")
                     ).withClass("header-actions"),
-                    p("No repositories configured. Click 'Add New Repository' to get started.")
+                    div(
+                            p("No repositories found or unable to fetch repositories. Your token may be invalid."),
+                            a("Re-authenticate with GitHub").withClass("btn btn-primary").withHref("/github/login")
+                    ).withClass("message-box")
             ).withClass("container");
         } else {
             bodyContent = div(
-                    h1("Git Repository Management"),
+                    h1("GitHub Repositories"),
                     div(
-                            a("Add New Repository").withClass("btn btn-primary").withHref("/new"),
-                            a("View GitHub Repositories").withClass("btn btn-secondary").withHref("/github/repositories")
+                            a("Back to Local Repositories").withClass("btn btn-secondary").withHref("/"),
+                            form(
+                                    button("Logout").withClass("btn btn-danger").withType("submit")
+                            ).withMethod("post").withAction("/github/logout")
                     ).withClass("header-actions"),
                     table(
                             thead(
                                     tr(
                                             th("Name"),
+                                            th("Description"),
                                             th("URL"),
-                                            th("Local Path"),
-                                            th("Status"),
-                                            th("Last Updated"),
-                                            th("Actions")
+                                            th("Private"),
+                                            th("Language"),
+                                            th("Updated")
                                     )
                             ),
                             tbody(
                                     each(repositories, repo -> {
-                                        boolean isCloned = service.isCloned(repo.getId());
+                                        String name = (String) repo.getOrDefault("name", "N/A");
+                                        String description = (String) repo.getOrDefault("description", "");
+                                        String htmlUrl = (String) repo.getOrDefault("html_url", "#");
+                                        Boolean isPrivate = (Boolean) repo.getOrDefault("private", false);
+                                        String language = (String) repo.getOrDefault("language", "N/A");
+                                        String updatedAt = (String) repo.getOrDefault("updated_at", "N/A");
+                                        
                                         return tr(
-                                                td(repo.getName()),
-                                                td(repo.getUrl()),
-                                                td(repo.getLocalPath()),
-                                                td(
-                                                        isCloned
-                                                                ? span("Cloned").withClass("status status-cloned")
-                                                                : span("Not Cloned").withClass("status status-not-cloned"),
-                                                        iff(repo.getLastError() != null,
-                                                                div(repo.getLastError()).withClass("error")
-                                                        )
+                                                td(name),
+                                                td(description != null && !description.isEmpty() ? description : "-"),
+                                                td(a(htmlUrl).withHref(htmlUrl).withTarget("_blank")),
+                                                td(isPrivate ? 
+                                                    span("Private").withClass("status status-private") : 
+                                                    span("Public").withClass("status status-public")
                                                 ),
-                                                td(repo.getLastUpdated() != null
-                                                        ? repo.getLastUpdated().format(formatter)
-                                                        : (repo.getLastCloned() != null
-                                                        ? repo.getLastCloned().format(formatter)
-                                                        : "-")),
-                                                td(
-                                                        div(
-                                                                iff(!isCloned,
-                                                                        form(
-                                                                                button("Clone").withClass("btn btn-success").withType("submit")
-                                                                        ).withMethod("post").withAction("/" + repo.getId() + "/clone")
-                                                                ),
-                                                                iff(isCloned,
-                                                                        form(
-                                                                                button("Update").withClass("btn btn-primary").withType("submit")
-                                                                        ).withMethod("post").withAction("/" + repo.getId() + "/update")
-                                                                ),
-                                                                iff(isCloned,
-                                                                        form(
-                                                                                button("Clean").withClass("btn btn-warning").withType("submit")
-                                                                        ).withMethod("post").withAction("/" + repo.getId() + "/clean")
-                                                                ),
-                                                                a("Edit").withClass("btn btn-secondary").withHref("/" + repo.getId() + "/edit"),
-                                                                form(
-                                                                        button("Delete").withClass("btn btn-danger").withType("submit")
-                                                                                .attr("onclick", "return confirm('Are you sure you want to delete this repository?')")
-                                                                ).withMethod("post").withAction("/" + repo.getId() + "/delete")
-                                                        ).withClass("actions")
-                                                )
+                                                td(language != null ? language : "-"),
+                                                td(updatedAt)
                                         );
                                     })
                             )
@@ -96,7 +89,7 @@ public class RepositoryViews {
         
         return html(
                 head(
-                        title("Operational Excellence - Repository Management"),
+                        title("GitHub Repositories - Operational Excellence"),
                         style("""
                                 body {
                                     font-family: Arial, sans-serif;
@@ -104,7 +97,7 @@ public class RepositoryViews {
                                     background-color: #f5f5f5;
                                 }
                                 .container {
-                                    max-width: 1200px;
+                                    max-width: 1400px;
                                     margin: 0 auto;
                                     background-color: white;
                                     padding: 20px;
@@ -133,19 +126,12 @@ public class RepositoryViews {
                                 .btn-primary:hover {
                                     background-color: #0056b3;
                                 }
-                                .btn-success {
-                                    background-color: #28a745;
+                                .btn-secondary {
+                                    background-color: #6c757d;
                                     color: white;
                                 }
-                                .btn-success:hover {
-                                    background-color: #218838;
-                                }
-                                .btn-warning {
-                                    background-color: #ffc107;
-                                    color: black;
-                                }
-                                .btn-warning:hover {
-                                    background-color: #e0a800;
+                                .btn-secondary:hover {
+                                    background-color: #5a6268;
                                 }
                                 .btn-danger {
                                     background-color: #dc3545;
@@ -153,13 +139,6 @@ public class RepositoryViews {
                                 }
                                 .btn-danger:hover {
                                     background-color: #c82333;
-                                }
-                                .btn-secondary {
-                                    background-color: #6c757d;
-                                    color: white;
-                                }
-                                .btn-secondary:hover {
-                                    background-color: #5a6268;
                                 }
                                 table {
                                     width: 100%;
@@ -184,24 +163,34 @@ public class RepositoryViews {
                                     font-size: 12px;
                                     font-weight: bold;
                                 }
-                                .status-cloned {
-                                    background-color: #d4edda;
-                                    color: #155724;
-                                }
-                                .status-not-cloned {
+                                .status-private {
                                     background-color: #f8d7da;
                                     color: #721c24;
                                 }
-                                .error {
-                                    color: #dc3545;
-                                    font-size: 12px;
-                                    margin-top: 4px;
-                                }
-                                .actions {
-                                    white-space: nowrap;
+                                .status-public {
+                                    background-color: #d4edda;
+                                    color: #155724;
                                 }
                                 .header-actions {
                                     margin-bottom: 20px;
+                                }
+                                .message-box {
+                                    padding: 20px;
+                                    margin: 20px 0;
+                                    background-color: #f8f9fa;
+                                    border: 1px solid #dee2e6;
+                                    border-radius: 4px;
+                                }
+                                .message-box p {
+                                    margin-bottom: 15px;
+                                    color: #495057;
+                                }
+                                a {
+                                    color: #007bff;
+                                    text-decoration: none;
+                                }
+                                a:hover {
+                                    text-decoration: underline;
                                 }
                                 """
                         )
@@ -210,12 +199,10 @@ public class RepositoryViews {
         ).render();
     }
 
-    public static String formView(GitRepository repository) {
-        boolean isEdit = repository != null;
-        
+    public static String tokenFormView() {
         return html(
                 head(
-                        title(isEdit ? "Edit Repository" : "Add New Repository"),
+                        title("GitHub Authentication - Operational Excellence"),
                         style("""
                                 body {
                                     font-family: Arial, sans-serif;
@@ -223,7 +210,7 @@ public class RepositoryViews {
                                     background-color: #f5f5f5;
                                 }
                                 .container {
-                                    max-width: 600px;
+                                    max-width: 800px;
                                     margin: 0 auto;
                                     background-color: white;
                                     padding: 20px;
@@ -280,39 +267,54 @@ public class RepositoryViews {
                                 .btn-secondary:hover {
                                     background-color: #5a6268;
                                 }
-                                .form-actions {
-                                    margin-top: 20px;
+                                .info-box {
+                                    padding: 15px;
+                                    margin: 20px 0;
+                                    background-color: #d1ecf1;
+                                    border: 1px solid #bee5eb;
+                                    border-radius: 4px;
+                                    color: #0c5460;
+                                }
+                                .info-box ul {
+                                    margin: 10px 0;
+                                    padding-left: 20px;
+                                }
+                                .info-box a {
+                                    color: #0c5460;
+                                    font-weight: bold;
                                 }
                                 """
                         )
                 ),
                 body(
                         div(
-                                h1(isEdit ? "Edit Repository" : "Add New Repository"),
+                                h1("Authenticate with GitHub"),
+                                div(
+                                        p(strong("How to generate a GitHub Personal Access Token:")),
+                                        rawHtml("<ol>" +
+                                                "<li>Go to <a href='https://github.com/settings/tokens' target='_blank'>GitHub Settings → Developer Settings → Personal Access Tokens → Tokens (classic)</a></li>" +
+                                                "<li>Click <strong>Generate new token (classic)</strong></li>" +
+                                                "<li>Give your token a descriptive name</li>" +
+                                                "<li>Select scopes: <strong>repo</strong> (for full repository access)</li>" +
+                                                "<li>Click <strong>Generate token</strong></li>" +
+                                                "<li>Copy the token (you won't be able to see it again)</li>" +
+                                                "<li>Paste it in the form below</li>" +
+                                                "</ol>")
+                                ).withClass("info-box"),
                                 form(
-                                        isEdit ? input().withType("hidden").withName("id").withValue(String.valueOf(repository.getId())) : text(""),
                                         div(
-                                                label("Name:").attr("for", "name"),
+                                                label("GitHub Personal Access Token:").attr("for", "token"),
                                                 input().withType("text")
-                                                        .withName("name")
-                                                        .withId("name")
-                                                        .withValue(isEdit ? repository.getName() : "")
+                                                        .withName("token")
+                                                        .withId("token")
+                                                        .withPlaceholder("ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
                                                         .isRequired()
                                         ).withClass("form-group"),
                                         div(
-                                                label("Git URL:").attr("for", "url"),
-                                                input().withType("text")
-                                                        .withName("url")
-                                                        .withId("url")
-                                                        .withValue(isEdit ? repository.getUrl() : "")
-                                                        .withPlaceholder("https://github.com/user/repo.git")
-                                                        .isRequired()
-                                        ).withClass("form-group"),
-                                        div(
-                                                button("Save").withClass("btn btn-primary").withType("submit"),
-                                                a("Cancel").withClass("btn btn-secondary").withHref("/")
-                                        ).withClass("form-actions")
-                                ).withMethod("post").withAction("/")
+                                                button("Save Token").withClass("btn btn-primary").withType("submit"),
+                                                a("Cancel").withClass("btn btn-secondary").withHref("/github/repositories")
+                                        )
+                                ).withMethod("post").withAction("/github/token")
                         ).withClass("container")
                 )
         ).render();

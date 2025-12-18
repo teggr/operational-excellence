@@ -31,7 +31,8 @@ public class GitHubService {
     public Optional<GitHubToken> getCurrentToken() {
         // For simplicity, we'll use a single token (first one in the database)
         // In a real application, you'd associate tokens with authenticated users
-        return tokenRepository.findAll().stream().findFirst();
+        List<GitHubToken> tokens = tokenRepository.findAll();
+        return tokens.isEmpty() ? Optional.empty() : Optional.of(tokens.get(0));
     }
 
     public void saveToken(String username, String accessToken) {
@@ -48,7 +49,8 @@ public class GitHubService {
         tokenRepository.save(token);
     }
 
-    public void deleteToken() {
+    public void deleteAllTokens() {
+        // Note: This deletes ALL tokens. For single-user local application only.
         tokenRepository.deleteAll();
     }
 

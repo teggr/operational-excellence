@@ -55,7 +55,7 @@ public class GitHubController {
 
     @PostMapping(value = "/logout")
     public String logout() {
-        gitHubService.deleteToken();
+        gitHubService.deleteAllTokens();
         return "redirect:/github/repositories";
     }
 }

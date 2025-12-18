@@ -16,6 +16,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize -> authorize
                 .anyRequest().permitAll()
             )
+            // CSRF is disabled as this is a single-user local application
+            // without session-based authentication. All requests are permitted.
+            // For production use, consider implementing proper CSRF protection.
             .csrf(csrf -> csrf.disable());
         
         return http.build();

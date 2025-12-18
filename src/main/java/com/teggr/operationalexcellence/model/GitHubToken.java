@@ -74,4 +74,15 @@ public class GitHubToken {
     public boolean isExpired() {
         return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
     }
+
+    @Override
+    public String toString() {
+        return "GitHubToken{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", accessToken='***'" +
+                ", createdAt=" + createdAt +
+                ", expiresAt=" + expiresAt +
+                '}';
+    }
 }

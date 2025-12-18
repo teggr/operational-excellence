@@ -35,8 +35,8 @@ public class GitHubController {
 
     @GetMapping(value = "/token-form", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
-    public String showTokenForm() {
-        return GitHubViews.tokenFormView();
+    public String showTokenForm(@RequestParam(required = false) String error) {
+        return GitHubViews.tokenFormView(error);
     }
 
     @PostMapping(value = "/token")
@@ -47,9 +47,10 @@ public class GitHubController {
         if (!user.isEmpty() && user.containsKey("login")) {
             String username = (String) user.get("login");
             gitHubService.saveToken(username, token);
+            return "redirect:/github/repositories";
+        } else {
+            return "redirect:/github/token-form?error=invalid";
         }
-        
-        return "redirect:/github/repositories";
     }
 
     @PostMapping(value = "/logout")

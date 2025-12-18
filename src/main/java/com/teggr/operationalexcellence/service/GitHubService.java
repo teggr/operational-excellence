@@ -2,6 +2,7 @@ package com.teggr.operationalexcellence.service;
 
 import com.teggr.operationalexcellence.model.GitHubToken;
 import com.teggr.operationalexcellence.repository.GitHubTokenRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -17,10 +18,14 @@ public class GitHubService {
 
     private final GitHubTokenRepository tokenRepository;
     private final RestTemplate restTemplate;
+    private final String githubApiBaseUrl;
 
-    public GitHubService(GitHubTokenRepository tokenRepository) {
+    public GitHubService(
+            GitHubTokenRepository tokenRepository,
+            @Value("${github.api.base-url}") String githubApiBaseUrl) {
         this.tokenRepository = tokenRepository;
         this.restTemplate = new RestTemplate();
+        this.githubApiBaseUrl = githubApiBaseUrl;
     }
 
     public Optional<GitHubToken> getCurrentToken() {
@@ -68,7 +73,7 @@ public class GitHubService {
             HttpEntity<String> entity = new HttpEntity<>(headers);
             
             ResponseEntity<List> response = restTemplate.exchange(
-                "https://api.github.com/user/repos?sort=updated&per_page=100",
+                githubApiBaseUrl + "/user/repos?sort=updated&per_page=100",
                 HttpMethod.GET,
                 entity,
                 List.class
@@ -99,7 +104,7 @@ public class GitHubService {
             HttpEntity<String> entity = new HttpEntity<>(headers);
             
             ResponseEntity<Map> response = restTemplate.exchange(
-                "https://api.github.com/user",
+                githubApiBaseUrl + "/user",
                 HttpMethod.GET,
                 entity,
                 Map.class

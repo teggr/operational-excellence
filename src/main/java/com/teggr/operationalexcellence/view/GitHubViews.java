@@ -199,7 +199,7 @@ public class GitHubViews {
         ).render();
     }
 
-    public static String tokenFormView() {
+    public static String tokenFormView(String error) {
         return html(
                 head(
                         title("GitHub Authentication - Operational Excellence"),
@@ -231,7 +231,7 @@ public class GitHubViews {
                                     font-weight: bold;
                                     color: #333;
                                 }
-                                input[type="text"] {
+                                input[type="password"] {
                                     width: 100%;
                                     padding: 8px;
                                     border: 1px solid #ddd;
@@ -239,9 +239,17 @@ public class GitHubViews {
                                     box-sizing: border-box;
                                     font-size: 14px;
                                 }
-                                input[type="text"]:focus {
+                                input[type="password"]:focus {
                                     outline: none;
                                     border-color: #007bff;
+                                }
+                                .error-box {
+                                    padding: 15px;
+                                    margin: 20px 0;
+                                    background-color: #f8d7da;
+                                    border: 1px solid #f5c6cb;
+                                    border-radius: 4px;
+                                    color: #721c24;
                                 }
                                 .btn {
                                     padding: 10px 20px;
@@ -289,6 +297,11 @@ public class GitHubViews {
                 body(
                         div(
                                 h1("Authenticate with GitHub"),
+                                iff("invalid".equals(error),
+                                        div(
+                                                p("Invalid token. Please check your token and try again. Make sure the token has the correct permissions.")
+                                        ).withClass("error-box")
+                                ),
                                 div(
                                         p(strong("How to generate a GitHub Personal Access Token:")),
                                         rawHtml("<ol>" +
@@ -304,7 +317,7 @@ public class GitHubViews {
                                 form(
                                         div(
                                                 label("GitHub Personal Access Token:").attr("for", "token"),
-                                                input().withType("text")
+                                                input().withType("password")
                                                         .withName("token")
                                                         .withId("token")
                                                         .withPlaceholder("ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")

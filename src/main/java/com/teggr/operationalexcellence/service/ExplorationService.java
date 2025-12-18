@@ -108,7 +108,7 @@ public class ExplorationService {
             hotspot.setIdentifier("HS-" + (i + 1));
             
             // Associate some signals with this hotspot
-            if (!signals.isEmpty()) {
+            if (!signals.isEmpty() && signals.size() > 0) {
                 hotspot.getContributingSignals().add(signals.get(i % signals.size()));
             }
             
@@ -129,7 +129,7 @@ public class ExplorationService {
             );
             
             // Associate some hotspots with this theme
-            if (!hotspots.isEmpty()) {
+            if (!hotspots.isEmpty() && hotspots.size() > 0) {
                 theme.getAssociatedHotspots().add(hotspots.get(i % hotspots.size()));
             }
             

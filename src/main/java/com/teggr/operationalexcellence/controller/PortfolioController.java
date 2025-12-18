@@ -28,6 +28,11 @@ public class PortfolioController {
     public ResponseEntity<Portfolio> createPortfolio(@RequestBody Map<String, String> request) {
         String name = request.get("name");
         String description = request.get("description");
+        
+        if (name == null || name.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
         Portfolio portfolio = portfolioService.createPortfolio(name, description);
         return ResponseEntity.status(HttpStatus.CREATED).body(portfolio);
     }
@@ -52,6 +57,11 @@ public class PortfolioController {
             @PathVariable UUID id,
             @RequestBody Map<String, String> request) {
         String repositoryUrl = request.get("url");
+        
+        if (repositoryUrl == null || repositoryUrl.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
         Portfolio portfolio = portfolioService.addRepository(id, repositoryUrl);
         return ResponseEntity.ok(portfolio);
     }

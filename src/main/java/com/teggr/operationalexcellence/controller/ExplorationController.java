@@ -45,9 +45,19 @@ public class ExplorationController {
     public ResponseEntity<Exploration> createExploration(
             @PathVariable UUID snapshotId,
             @RequestBody Map<String, String> request) {
-        ExplorationType type = ExplorationType.valueOf(request.get("type"));
-        Exploration exploration = explorationService.createExploration(snapshotId, type);
-        return ResponseEntity.status(HttpStatus.CREATED).body(exploration);
+        String typeStr = request.get("type");
+        
+        if (typeStr == null || typeStr.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        try {
+            ExplorationType type = ExplorationType.valueOf(typeStr);
+            Exploration exploration = explorationService.createExploration(snapshotId, type);
+            return ResponseEntity.status(HttpStatus.CREATED).body(exploration);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/explorations")

@@ -44,4 +44,9 @@ public class PortfolioService {
     public void deletePortfolio(UUID id) {
         portfolioRepository.deleteById(id);
     }
+
+    @Transactional
+    public Portfolio updatePortfolio(Portfolio portfolio) {
+        return portfolioRepository.save(portfolio);
+    }
 }
